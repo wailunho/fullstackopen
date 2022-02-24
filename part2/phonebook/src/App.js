@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Filter from './Filter'
 import PersonForm from './PersonForm'
 import Persons from './Persons'
-import axios from 'axios'
+import PersonService from './services/persons'
 
 const App = () => {
   const [persons, setPersons] = useState([])
@@ -12,11 +12,19 @@ const App = () => {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (persons.map(x => x.name).includes(newPerson.name)) {
-      alert(`${newPerson.name} is already added to phonebook`)
-      return
+      if(window.confirm(`${newPerson.name} is already added to phonebook, replace the old number with a new one?`)){
+        const p = persons.find(x => x.name === newPerson.name)
+        return PersonService.update(p.id, newPerson).then(data => {
+          setPersons(persons.map(x => x.id === p.id? data: x))
+        })
+      } else {
+        return
+      }
     }
-    setPersons(persons.concat({ name: newPerson.name, number: newPerson.number }))
-    setNewPerson({ name: '', number: '' })
+    PersonService.create({ name: newPerson.name, number: newPerson.number }).then(data => {
+      setPersons(persons.concat(data))
+      setNewPerson({ name: '', number: '' })
+    })
   }
 
   const handleChangeName = (e) => {
@@ -31,10 +39,20 @@ const App = () => {
     setSearch(e.target.value)
   }
 
+  const handleDelete = (id, name) => {
+    return () => {
+      if (window.confirm(`Delete ${name}?`)) {
+        PersonService.remove(id).then(() => {
+          setPersons(persons.filter(x => x.id !== id))
+        })
+      }
+    }
+  }
+
   const personsToShow = search ? persons.filter(x => x.name.match(new RegExp(search, 'i'))) : persons
 
   useEffect(() => {
-    axios.get('http://localhost:3001/persons').then(({ data }) => {
+    PersonService.getAll().then(data => {
       setPersons(data)
     })
   }, [])
@@ -47,7 +65,7 @@ const App = () => {
       <PersonForm handleSubmit={handleSubmit} handleChangeName={handleChangeName}
                   handleChangeNumber={handleChangeNumber} newPerson={newPerson}/>
       <h3>Numbers</h3>
-      <Persons persons={personsToShow}/>
+      <Persons persons={personsToShow} handleDelete={handleDelete}/>
     </div>
   )
 }
