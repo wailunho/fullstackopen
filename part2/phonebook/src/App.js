@@ -2,12 +2,30 @@ import { useState, useEffect } from 'react'
 import Filter from './Filter'
 import PersonForm from './PersonForm'
 import Persons from './Persons'
+import Notification from './Notification'
 import PersonService from './services/persons'
+
+const MESSAGE_TYPE_SUCCESS = 'success'
+const MESSAGE_TYPE_ERROR = 'error'
 
 const App = () => {
   const [persons, setPersons] = useState([])
   const [newPerson, setNewPerson] = useState({ name: '', number: '' })
   const [search, setSearch] = useState('')
+  const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState(MESSAGE_TYPE_SUCCESS)
+
+  const showSuccessMsg = (msg) => {
+    setMessageType(MESSAGE_TYPE_SUCCESS)
+    setMessage(msg)
+    setTimeout(() => {setMessage('')}, 5000)
+  }
+
+  const showErrorMsg = (msg) => {
+    setMessageType(MESSAGE_TYPE_ERROR)
+    setMessage(msg)
+    setTimeout(() => {setMessage('')}, 5000)
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -24,6 +42,7 @@ const App = () => {
     PersonService.create({ name: newPerson.name, number: newPerson.number }).then(data => {
       setPersons(persons.concat(data))
       setNewPerson({ name: '', number: '' })
+      showSuccessMsg(`Added ${data.name}`)
     })
   }
 
@@ -44,6 +63,10 @@ const App = () => {
       if (window.confirm(`Delete ${name}?`)) {
         PersonService.remove(id).then(() => {
           setPersons(persons.filter(x => x.id !== id))
+        }).catch(e => {
+          console.error(e)
+          setPersons(persons.filter(x => x.id !== id))
+          showErrorMsg(`Information of ${name} has already been removed from server`)
         })
       }
     }
@@ -60,6 +83,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={message} type={messageType}/>
       <Filter handleSearch={handleSearch} search={search}/>
       <h3>Add a new</h3>
       <PersonForm handleSubmit={handleSubmit} handleChangeName={handleChangeName}
