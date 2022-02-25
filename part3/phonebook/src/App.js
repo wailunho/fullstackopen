@@ -44,6 +44,8 @@ const App = () => {
       setPersons(persons.concat(data))
       setNewPerson({ name: '', number: '' })
       showSuccessMsg(`Added ${data.name}`)
+    }).catch(e => {
+      showErrorMsg(e.response.data.error)
     })
   }
 
